@@ -1,0 +1,18 @@
+[Unit]
+Description=Device Web Console
+After=network.target
+
+[Service]
+Type=simple
+User=root
+WorkingDirectory=/opt/device-console
+ExecStart=/usr/bin/node /opt/device-console/dist/server/index.js
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+Environment="NODE_ENV=production"
+Environment="PORT=3000"
+
+[Install]
+WantedBy=multi-user.target

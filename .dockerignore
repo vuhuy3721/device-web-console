@@ -1,0 +1,12 @@
+node_modules
+npm-debug.log
+dist
+.git
+.gitignore
+README.md
+DEPLOY_GUIDE.md
+QUICKSTART.md
+deploy.sh
+deploy-pkg
+.DS_Store
+*.log

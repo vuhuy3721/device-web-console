@@ -1,0 +1,55 @@
+@baseUrl = http://localhost:3000
+@token = dev_token_12345
+
+### Get About Info
+GET {{baseUrl}}/api/about
+Authorization: Bearer {{token}}
+
+###
+
+### Get Connection Info
+GET {{baseUrl}}/api/connection
+Authorization: Bearer {{token}}
+
+###
+
+### Get Status
+GET {{baseUrl}}/api/status
+Authorization: Bearer {{token}}
+
+###
+
+### Get Network Info
+GET {{baseUrl}}/api/network
+Authorization: Bearer {{token}}
+
+###
+
+### Get Admin Settings
+GET {{baseUrl}}/api/admin/settings
+Authorization: Bearer {{token}}
+
+###
+
+### Update Admin Password
+POST {{baseUrl}}/api/admin/password
+Authorization: Bearer {{token}}
+Content-Type: application/json
+
+{
+  "newPassword": "new_password_123"
+}
+
+###
+
+### Get Health Status
+GET {{baseUrl}}/api/status/health
+Authorization: Bearer {{token}}
+
+###
+
+### Test HTML Page
+GET {{baseUrl}}/
+Authorization: Bearer {{token}}
+
+###

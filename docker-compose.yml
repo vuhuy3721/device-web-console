@@ -1,0 +1,23 @@
+version: '3.8'
+
+services:
+  device-console:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: device-console
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=production
+      - PORT=3000
+      - MQTT_SERVER=aiot.mobifone.vn
+      - MQTT_PORT=6668
+    volumes:
+      - ./src/server/config:/app/src/server/config
+    restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"

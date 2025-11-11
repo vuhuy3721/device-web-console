@@ -1,0 +1,138 @@
+[
+  {
+    "created": 1761734445,
+    "days": 21,
+    "ds": [
+      310
+    ],
+    "expired": 1764521999,
+    "files": [
+      {
+        "cs": 2010258821,
+        "duration": 6,
+        "id": 0,
+        "index": 0,
+        "size": 202934,
+        "start_offset": 0,
+        "type": 3,
+        "url": "https://tttm.mobifone.vn/uploadFile/header/header.wav"
+      },
+      {
+        "cs": 402303319,
+        "duration": 304,
+        "id": 281746,
+        "index": 1,
+        "size": 14065088,
+        "start_offset": 0,
+        "type": 1,
+        "url": "media_cache/281746_1.mp3"
+      }
+    ],
+    "mid": 281746,
+    "mode": 1,
+    "prio": 998,
+    "repeat": 0,
+    "start": 1761930000,
+    "summary": "lap ngày trong tuan",
+    "ts": [
+      63579
+    ],
+    "version": 1
+  },
+  {
+    "created": 1761998134,
+    "days": 1572880,
+    "ds": [
+      86400,
+      376,
+      376,
+      376,
+      86400
+    ],
+    "expired": 3200835599,
+    "files": [
+      {
+        "cs": 486312622,
+        "duration": 188,
+        "id": 0,
+        "index": 0,
+        "size": 6030315,
+        "start_offset": 0,
+        "type": 1,
+        "url": "media_cache/281825_0.mp3"
+      },
+      {
+        "cs": 486312622,
+        "duration": 188,
+        "id": 281825,
+        "index": 1,
+        "size": 6030315,
+        "start_offset": 0,
+        "type": 1,
+        "url": "media_cache/281825_1.mp3"
+      }
+    ],
+    "mid": 281825,
+    "mode": 1,
+    "prio": 998,
+    "repeat": 1,
+    "start": 1896109200,
+    "summary": "ts time",
+    "ts": [
+      67973,
+      67974,
+      68351,
+      68728,
+      69105
+    ],
+    "version": 1
+  },
+  {
+    "created": 1761998134,
+    "days": 1572880,
+    "ds": [
+      86400,
+      376,
+      376,
+      376,
+      86400
+    ],
+    "expired": 3200835599,
+    "files": [
+      {
+        "cs": 486312622,
+        "duration": 188,
+        "id": 0,
+        "index": 0,
+        "size": 6030315,
+        "start_offset": 0,
+        "type": 1,
+        "url": "media_cache/281825_0.mp3"
+      },
+      {
+        "cs": 486312622,
+        "duration": 188,
+        "id": 281825,
+        "index": 1,
+        "size": 6030315,
+        "start_offset": 0,
+        "type": 1,
+        "url": "media_cache/281825_1.mp3"
+      }
+    ],
+    "mid": 281825,
+    "mode": 1,
+    "prio": 998,
+    "repeat": 1,
+    "start": 1896109200,
+    "summary": "ts time",
+    "ts": [
+      67973,
+      67974,
+      68351,
+      68728,
+      69105
+    ],
+    "version": 1
+  }
+]
