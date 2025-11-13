@@ -355,3 +355,77 @@ footer p {
     color: #f39c12;
     font-weight: bold;
 }
+
+/* Media Select Dropdown */
+.media-select {
+    width: 100%;
+    padding: 10px 15px;
+    border: 2px solid #3498db;
+    border-radius: 4px;
+    font-size: 0.95em;
+    background-color: #ffffff;
+    color: #2c3e50;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.media-select:hover {
+    border-color: #2980b9;
+    box-shadow: 0 2px 8px rgba(52, 152, 219, 0.2);
+}
+
+.media-select:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 8px rgba(102, 126, 234, 0.3);
+}
+
+/* Media Action Buttons */
+.media-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+    padding: 20px;
+    background: #f8f9fa;
+    border-top: 2px solid #ecf0f1;
+}
+
+.btn-play {
+    background: linear-gradient(135deg, #27ae60 0%, #229954 100%);
+}
+
+.btn-play:hover {
+    background: linear-gradient(135deg, #229954 0%, #1e8449 100%);
+}
+
+.btn-stop {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+}
+
+.btn-stop:hover {
+    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+}
+
+.btn-delete {
+    background: linear-gradient(135deg, #e67e22 0%, #d35400 100%);
+}
+
+.btn-delete:hover {
+    background: linear-gradient(135deg, #d35400 0%, #ba4a00 100%);
+}
+
+.btn-delete-all {
+    background: linear-gradient(135deg, #95a5a6 0%, #7f8c8d 100%);
+}
+
+.btn-delete-all:hover {
+    background: linear-gradient(135deg, #7f8c8d 0%, #717d7e 100%);
+}
+
+/* No data message */
+.no-data {
+    text-align: center;
+    color: #95a5a6;
+    padding: 30px;
+    font-style: italic;
+}

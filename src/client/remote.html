@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Remote Management - Device Console</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .mqtt-status {
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .mqtt-status.connected {
+            background: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
+        }
+
+        .mqtt-status.disconnected {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+        }
+
+        .status-indicator {
+            display: inline-block;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            margin-right: 8px;
+            animation: pulse 2s infinite;
+        }
+
+        .status-indicator.connected {
+            background-color: #38ef7d;
+        }
+
+        .status-indicator.disconnected {
+            background-color: #f45c43;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 10px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-right: 10px;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-warning {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #eb3349 0%, #f45c43 100%);
+            color: white;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 15px 0;
+            border-radius: 5px;
+            display: none;
+        }
+
+        .alert.success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert.error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .info-card {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            margin: 20px 0;
+        }
+
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 10px 0;
+            border-bottom: 1px solid #eee;
+        }
+
+        .info-row:last-child {
+            border-bottom: none;
+        }
+
+        .info-label {
+            font-weight: 600;
+            color: #666;
+        }
+
+        .info-value {
+            color: #333;
+            font-family: monospace;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🌐 Remote Device Management</h1>
+        <div class="user-info">
+            <span id="username-display"></span>
+            <button onclick="window.location.href='index.html'" class="btn btn-primary">← Back to Dashboard</button>
+        </div>
+    </div>
+
+    <div class="container">
+        <!-- Alert Messages -->
+        <div id="alert-success" class="alert success"></div>
+        <div id="alert-error" class="alert error"></div>
+
+        <!-- MQTT Connection Status -->
+        <div id="mqtt-status-card" class="mqtt-status">
+            <h2>
+                <span class="status-indicator" id="status-indicator"></span>
+                MQTT Status
+            </h2>
+            <p id="mqtt-status-text">Đang kiểm tra kết nối...</p>
+            <p><strong>Server:</strong> <span id="mqtt-server">-</span></p>
+            <p><strong>Port:</strong> <span id="mqtt-port">-</span></p>
+        </div>
+
+        <!-- Device Information -->
+        <div class="info-card">
+            <h2>📱 Device Information</h2>
+            <div class="info-row">
+                <span class="info-label">Device ID:</span>
+                <span class="info-value" id="device-id">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Uptime:</span>
+                <span class="info-value" id="device-uptime">-</span>
+            </div>
+            <div class="info-row">
+                <span class="info-label">Last Update:</span>
+                <span class="info-value" id="last-update">-</span>
+            </div>
+        </div>
+
+        <!-- MQTT Configuration -->
+        <div class="info-card">
+            <h2>⚙️ MQTT Configuration</h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                Cập nhật cấu hình MQTT để kết nối đến broker khác. Thiết bị sẽ tự động kết nối lại.
+            </p>
+            
+            <form id="mqtt-config-form">
+                <div class="form-group">
+                    <label for="mqtt-server-input">MQTT Server:</label>
+                    <input type="text" id="mqtt-server-input" placeholder="aiot.mobifone.vn" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="mqtt-port-input">MQTT Port:</label>
+                    <input type="number" id="mqtt-port-input" placeholder="6668" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="mqtt-username-input">Username (optional):</label>
+                    <input type="text" id="mqtt-username-input" placeholder="username">
+                </div>
+
+                <div class="form-group">
+                    <label for="mqtt-password-input">Password (optional):</label>
+                    <input type="password" id="mqtt-password-input" placeholder="password">
+                </div>
+
+                <button type="submit" class="btn btn-primary">💾 Save & Reconnect</button>
+                <button type="button" class="btn btn-warning" onclick="reconnectMQTT()">🔄 Reconnect Now</button>
+            </form>
+        </div>
+
+        <!-- Device Control -->
+        <div class="info-card">
+            <h2>🔧 Device Control</h2>
+            <p style="color: #666; margin-bottom: 20px;">
+                Các lệnh điều khiển thiết bị từ xa qua HTTP API (không phụ thuộc MQTT)
+            </p>
+            
+            <button class="btn btn-warning" onclick="refreshStatus()">🔄 Refresh Status</button>
+            <button class="btn btn-danger" onclick="rebootDevice()">🔴 Reboot Device</button>
+        </div>
+    </div>
+
+    <script>
+        // Check authentication
+        if (!localStorage.getItem('isLoggedIn')) {
+            window.location.href = 'login.html';
+        }
+
+        // Display username
+        const username = localStorage.getItem('username') || 'Admin';
+        document.getElementById('username-display').textContent = `👤 ${username}`;
+
+        // Load initial status
+        loadDeviceStatus();
+        loadMQTTStatus();
+
+        // Auto-refresh every 10 seconds
+        setInterval(() => {
+            loadDeviceStatus();
+            loadMQTTStatus();
+        }, 10000);
+
+        // Load device status
+        async function loadDeviceStatus() {
+            try {
+                const response = await fetch('/api/remote/status');
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('device-id').textContent = data.deviceId;
+                    document.getElementById('device-uptime').textContent = formatUptime(data.uptime);
+                    document.getElementById('last-update').textContent = new Date(data.timestamp).toLocaleString('vi-VN');
+                }
+            } catch (error) {
+                console.error('Failed to load device status:', error);
+            }
+        }
+
+        // Load MQTT status
+        async function loadMQTTStatus() {
+            try {
+                const response = await fetch('/api/remote/mqtt/status');
+                const data = await response.json();
+
+                const statusCard = document.getElementById('mqtt-status-card');
+                const statusIndicator = document.getElementById('status-indicator');
+                const statusText = document.getElementById('mqtt-status-text');
+
+                if (data.connected) {
+                    statusCard.className = 'mqtt-status connected';
+                    statusIndicator.className = 'status-indicator connected';
+                    statusText.textContent = '✅ Đã kết nối MQTT thành công';
+                } else {
+                    statusCard.className = 'mqtt-status disconnected';
+                    statusIndicator.className = 'status-indicator disconnected';
+                    statusText.textContent = '⚠️ MQTT không kết nối (Thiết bị vẫn quản lý được qua HTTP)';
+                }
+
+                document.getElementById('mqtt-server').textContent = data.server;
+                document.getElementById('mqtt-port').textContent = data.port;
+
+                // Pre-fill form
+                document.getElementById('mqtt-server-input').value = data.server;
+                document.getElementById('mqtt-port-input').value = data.port;
+
+            } catch (error) {
+                console.error('Failed to load MQTT status:', error);
+                showAlert('error', 'Không thể tải trạng thái MQTT');
+            }
+        }
+
+        // Handle MQTT config form submission
+        document.getElementById('mqtt-config-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+
+            const server = document.getElementById('mqtt-server-input').value;
+            const port = parseInt(document.getElementById('mqtt-port-input').value);
+            const username = document.getElementById('mqtt-username-input').value || undefined;
+            const password = document.getElementById('mqtt-password-input').value || undefined;
+
+            try {
+                const response = await fetch('/api/remote/mqtt/config', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ server, port, username, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('success', 'Đã cập nhật cấu hình MQTT. Đang kết nối lại...');
+                    setTimeout(() => {
+                        loadMQTTStatus();
+                    }, 2000);
+                } else {
+                    showAlert('error', data.message || 'Không thể cập nhật cấu hình');
+                }
+            } catch (error) {
+                showAlert('error', 'Lỗi khi cập nhật cấu hình: ' + error.message);
+            }
+        });
+
+        // Reconnect MQTT
+        async function reconnectMQTT() {
+            try {
+                const response = await fetch('/api/remote/mqtt/reconnect', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('success', 'Đang kết nối lại MQTT...');
+                    setTimeout(() => {
+                        loadMQTTStatus();
+                    }, 2000);
+                } else {
+                    showAlert('error', data.message || 'Không thể kết nối lại');
+                }
+            } catch (error) {
+                showAlert('error', 'Lỗi khi kết nối lại: ' + error.message);
+            }
+        }
+
+        // Refresh status
+        function refreshStatus() {
+            loadDeviceStatus();
+            loadMQTTStatus();
+            showAlert('success', 'Đã làm mới trạng thái');
+        }
+
+        // Reboot device
+        async function rebootDevice() {
+            if (!confirm('Bạn có chắc muốn khởi động lại thiết bị?\n\nThiết bị sẽ khởi động lại sau 5 giây.')) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/remote/reboot', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ delay: 5 })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('success', 'Thiết bị sẽ khởi động lại sau 5 giây...');
+                } else {
+                    showAlert('error', data.message || 'Không thể khởi động lại thiết bị');
+                }
+            } catch (error) {
+                showAlert('error', 'Lỗi khi khởi động lại: ' + error.message);
+            }
+        }
+
+        // Format uptime
+        function formatUptime(seconds) {
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const minutes = Math.floor((seconds % 3600) / 60);
+            return `${days}d ${hours}h ${minutes}m`;
+        }
+
+        // Show alert
+        function showAlert(type, message) {
+            const alertId = type === 'success' ? 'alert-success' : 'alert-error';
+            const alertEl = document.getElementById(alertId);
+            alertEl.textContent = message;
+            alertEl.style.display = 'block';
+
+            setTimeout(() => {
+                alertEl.style.display = 'none';
+            }, 5000);
+        }
+    </script>
+</body>
+</html>

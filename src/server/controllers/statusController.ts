@@ -14,13 +14,16 @@ export class StatusController {
             const uptimeMinutes = Math.floor((uptime % 3600) / 60);
 
             const status = {
-                connection: settings.disabled === 0 ? 'Connected' : 'Disconnected',
-                battery: '85%',
-                signalStrength: 'Strong',
                 uptime: `${uptimeHours} hours ${uptimeMinutes} minutes`,
+                storage: `Total: 16 GB, Free: 8 GB`,
+                log: `Total: 1 GB, Free: 500 MB`,
                 networkType: settings.mobile_mode === 3 ? '4G/LTE' : '3G',
                 bootTime: new Date(Date.now() - uptime * 1000).toISOString(),
-                timestamp: new Date().toISOString()
+                fmStatus: 'Active',
+                speakerStatus: 'Active',
+                streamBack: "On",
+                deviceTemperature: '45°C',
+                deviceHumidity: '40%'
             };
             res.json(status);
         } catch (error: any) {

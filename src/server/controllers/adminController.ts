@@ -83,6 +83,48 @@ export class AdminController {
         this.setPassword(req, res);
     }
 
+    public changePassword(req: Request, res: Response): void {
+        const { currentPassword, newPassword } = req.body;
+        
+        if (!currentPassword || !newPassword) {
+            res.status(400).json({ error: 'Current password and new password are required' });
+            return;
+        }
+
+        if (newPassword.length < 6) {
+            res.status(400).json({ error: 'New password must be at least 6 characters long' });
+            return;
+        }
+
+        try {
+            const settings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
+            const storedPassword = settings.admin?.password || 'admin';
+            
+            // Verify current password
+            if (currentPassword !== storedPassword) {
+                res.status(403).json({ error: 'Current password is incorrect' });
+                return;
+            }
+
+            // Update to new password
+            settings.admin = settings.admin || {};
+            settings.admin.password = newPassword;
+            fs.writeFileSync(this.settingsFilePath, JSON.stringify(settings, null, 2));
+            
+            console.log('Password changed successfully');
+            res.status(200).json({ 
+                message: 'Password changed successfully',
+                timestamp: new Date().toISOString()
+            });
+        } catch (error: any) {
+            console.error('Error changing password:', error);
+            res.status(500).json({ 
+                error: 'Failed to change password',
+                message: error.message 
+            });
+        }
+    }
+
     public getStatus(req: Request, res: Response): void {
         try {
             const settings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));

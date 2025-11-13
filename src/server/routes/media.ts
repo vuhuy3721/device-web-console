@@ -3,9 +3,9 @@ import mediaController from '../controllers/mediaController';
 
 const router = Router();
 
-router.get('/media', mediaController.getMediaInfo);
-router.post('/media/play', mediaController.playMedia);
-router.post('/media/pause', mediaController.pauseMedia);
-router.post('/media/stop', mediaController.stopMedia);
+router.get('/', mediaController.getListMedia.bind(mediaController));
+router.post('/play', mediaController.playMedia.bind(mediaController));
+router.post('/pause', mediaController.pauseMedia.bind(mediaController));
+router.post('/stop', mediaController.stopMedia.bind(mediaController));
 
 export default router;

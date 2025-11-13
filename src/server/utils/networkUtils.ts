@@ -281,6 +281,30 @@ export function getNetworkType(): string {
     }
 }
 
+export function connectToNetwork(type: string, ssid: string, password: string): boolean {
+    try {
+        switch (type) {
+            case 'wifi':
+                // Use nmcli to connect to WiFi
+                execSync(`nmcli dev wifi connect '${ssid}' password '${password}'`, { stdio: 'pipe' });
+                return true;
+            case 'ethernet':
+                // Ethernet usually connects automatically via DHCP
+                return true;
+            case 'mobile':
+                // Mobile connection logic (device-specific)
+                // Placeholder - implement as needed
+                return true;
+            default:
+                console.error('Unsupported network type:', type);
+                return false;
+        }
+    } catch (error) {
+        console.error('Error connecting to network:', error);
+        return false;
+    }
+}
+
 export default {
     getIpAddress,
     getIpAddressFromCommand,
@@ -292,5 +316,6 @@ export default {
     getNetworkInfo,
     hasInternetConnection,
     getSignalStrength,
-    getNetworkType
+    getNetworkType,
+    connectToNetwork
 };

@@ -9,6 +9,9 @@ import statusRoutes from './routes/status';
 import networkRoutes from './routes/network';
 import adminRoutes from './routes/admin';
 import aboutRoutes from './routes/about';
+import remoteRoutes from './routes/remote';
+import mgwRoutes from './routes/mgw';
+import wifiRoutes from './routes/wifi';
 import { authenticate } from './middleware/auth';
 
 const app = express();
@@ -27,6 +30,9 @@ app.use('/api/status', statusRoutes);
 app.use('/api/network', networkRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/about', aboutRoutes);
+// app.use('/api/remote', remoteRoutes); // Remote management API
+app.use('/api/mgw', mgwRoutes); // MGW data receiver
+app.use('/api/wifi', wifiRoutes); // WiFi management API
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
