@@ -31,8 +31,36 @@ app.use('/api/network', networkRoutes);
 app.use('/api/admin', adminRoutes);
 app.use('/api/about', aboutRoutes);
 // app.use('/api/remote', remoteRoutes); // Remote management API
-app.use('/api/mgw', mgwRoutes); // MGW data receiver
+// app.use('/api/mgw', mgwRoutes); // MGW data receiver
 app.use('/api/wifi', wifiRoutes); // WiFi management API
+
+// Reboot endpoint - forwards to external device
+app.post('/api/reboot', async (req: any, res: any) => {
+    try {
+        const option = req.body.option || 1;
+        const response = await fetch('http://100.78.142.94:8080/api/reboot', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ option })
+        });
+        const data = await response.json();
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: 'Failed to reboot device', message: error.message });
+    }
+});
+
+// Logs endpoint - forwards to external device
+app.get('/api/logs', async (req: any, res: any) => {
+    try {
+        const limit = req.query.limit || 50;
+        const response = await fetch(`http://100.78.142.94:8080/api/logs?limit=${limit}`);
+        const data = await response.json();
+        res.json(data);
+    } catch (error: any) {
+        res.status(500).json({ success: false, error: 'Failed to get logs', message: error.message });
+    }
+});
 
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);

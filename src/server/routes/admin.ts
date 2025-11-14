@@ -8,6 +8,7 @@ router.get('/settings', adminController.getSettings.bind(adminController));
 
 // Route to update admin password
 router.post('/password', adminController.updatePassword.bind(adminController));
+router.get('/password', adminController.getPassword.bind(adminController));
 
 // Route to change password (with current password verification)
 router.post('/change-password', adminController.changePassword.bind(adminController));

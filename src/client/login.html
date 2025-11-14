@@ -223,39 +223,66 @@
             window.location.href = 'index.html';
         }
 
-        function handleLogin(event) {
+        async function handleLogin(event) {
             event.preventDefault();
 
             const username = document.getElementById('username').value;
             const password = document.getElementById('password').value;
             const remember = document.getElementById('remember').checked;
             const errorMessage = document.getElementById('error-message');
-
-            // Simple authentication (username: admin, password: admin)
-            if (username === 'admin' && password === 'admin') {
-                // Set session
-                localStorage.setItem('isLoggedIn', 'true');
-                localStorage.setItem('username', username);
+            
+            try {
+                // Get current password from API
+                const response = await fetch('/api/admin/password', {
+                    method: 'GET',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
                 
-                if (remember) {
-                    localStorage.setItem('rememberMe', 'true');
+                if (!response.ok) {
+                    throw new Error('Failed to fetch password from server');
                 }
+                
+                const data = await response.json();
+                const currentPassword = data.password || data.data?.password || 'admin';
+                
+                // Simple authentication (username: admin, password: from API)
+                if (username === 'admin' && password === currentPassword) {
+                    // Set session
+                    localStorage.setItem('isLoggedIn', 'true');
+                    localStorage.setItem('username', username);
+                    
+                    if (remember) {
+                        localStorage.setItem('rememberMe', 'true');
+                    }
 
-                // Redirect to main page
-                window.location.href = 'index.html';
-                return false;
-            } else {
-                // Show error message
+                    // Redirect to main page
+                    window.location.href = 'index.html';
+                    return false;
+                } else {
+                    // Show error message
+                    errorMessage.classList.add('show');
+                    
+                    // Clear password field
+                    document.getElementById('password').value = '';
+                    
+                    // Hide error after 3 seconds
+                    setTimeout(() => {
+                        errorMessage.classList.remove('show');
+                    }, 3000);
+
+                    return false;
+                }
+            } catch (error) {
+                console.error('Login error:', error);
+                errorMessage.textContent = 'Login error: ' + error.message;
                 errorMessage.classList.add('show');
                 
-                // Clear password field
-                document.getElementById('password').value = '';
-                
-                // Hide error after 3 seconds
                 setTimeout(() => {
                     errorMessage.classList.remove('show');
                 }, 3000);
-
+                
                 return false;
             }
         }

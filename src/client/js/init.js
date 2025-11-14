@@ -11,5 +11,6 @@ document.addEventListener("DOMContentLoaded", () => {
   loadApiData("status", "status-info", formatStatusData);
   loadApiData("about", "about-info", formatAboutData);
   loadApiData("network", "network-info", formatNetworkData);
-  loadApiData("admin/settings", "admin-info", formatConnectionData);
+  loadApiData("about", "basic-info", formatBasicInfo); // Load GSM basic info
+  loadApiData("status", "admin-info", formatAdminData);
 });

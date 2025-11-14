@@ -1,0 +1,18 @@
+{
+  "classd_chipset": "Generic Chipset",
+  "classd_version": "1.0.0",
+  "fm": " ",
+  "fvers": "1.0.2",
+  "gsm_imei": "862099076484350",
+  "gsm_imsi": "452080875412658",
+  "gsm_model": "EG800K",
+  "gsm_phone": "ERROR",
+  "gsm_revision": "EG800KCNGCR07A06M04",
+  "hw_version": "1",
+  "id": "880027546738806684",
+  "os_builddate": "Nov 14 2025 07:50:56",
+  "os_version": "Linux 5.4.125",
+  "sd_cid": "",
+  "vcode": "2140759984",
+  "timestamp": "2025-11-14T09:24:48.479Z"
+}

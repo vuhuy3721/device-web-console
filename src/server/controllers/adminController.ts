@@ -32,7 +32,7 @@ export class AdminController {
             const settings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
             const password = settings.admin?.password || 'not_set';
             res.status(200).json({ 
-                password: password === 'not_set' ? null : '***' ,
+                password: password,
                 isSet: password !== 'not_set',
                 timestamp: new Date().toISOString()
             });

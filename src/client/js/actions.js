@@ -351,6 +351,44 @@ async function resetNetwork() {
   }
 }
 
+async function sendATCommand() {
+  try {
+    const command = document.getElementById('atCommand').value;
+    const timeout = document.getElementById('atTimeout').value;
+    const responseField = document.getElementById('atResponse');
+
+    if (!command) {
+      alert('⚠️ Please enter an AT command');
+      return;
+    }
+
+    responseField.value = 'Sending...';
+
+    const response = await fetch('/api/network/at-command', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer dev_token_12345'
+      },
+      body: JSON.stringify({
+        command: command,
+        timeout: parseInt(timeout) || 3
+      })
+    });
+
+    const result = await response.json();
+
+    if (response.ok) {
+      responseField.value = result.data.response || result.message || 'OK';
+    } else {
+      responseField.value = 'ERROR: ' + (result.error || result.message || 'Command failed');
+    }
+  } catch (error) {
+    document.getElementById('atResponse').value = 'ERROR: ' + error.message;
+    console.error('AT Command error:', error);
+  }
+}
+
 /**
  * Admin actions
  */
@@ -391,7 +429,7 @@ async function changePassword() {
     const result = await response.json();
 
     if (response.ok) {
-      alert('✅ Password changed successfully! Please login again.');
+      alert('✅ Password changed successfully!');
       // Clear password fields
       document.getElementById('currentPassword').value = '';
       document.getElementById('newPassword').value = '';
@@ -444,15 +482,17 @@ async function updateAdminSettings() {
 async function rebootDevice() {
   if (confirm('⚠️ Are you sure you want to reboot the device? This will interrupt all operations.')) {
     try {
-      const response = await fetch('/api/admin/reboot', {
+      const response = await fetch('/api/reboot', {
         method: 'POST',
         headers: {
+          'Content-Type': 'application/json',
           'Authorization': 'Bearer dev_token_12345'
-        }
+        },
+        body: JSON.stringify({ option: 1 })
       });
 
       if (response.ok) {
-        alert('✅ Device reboot initiated!');
+        alert('✅ Device reboot initiated! The device will be unavailable for a few moments.');
       } else {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
@@ -465,18 +505,38 @@ async function rebootDevice() {
 
 async function exportLogs() {
   try {
-    const response = await fetch('/api/admin/logs', {
+    const response = await fetch('/api/logs?limit=200', {
       headers: {
         'Authorization': 'Bearer dev_token_12345'
       }
     });
 
     if (response.ok) {
-      const blob = await response.blob();
+      const data = await response.json();
+      
+      // Create a formatted log file
+      let logsText = 'Device Logs Export\n';
+      logsText += '=' .repeat(50) + '\n';
+      logsText += `Exported at: ${new Date().toLocaleString()}\n\n`;
+      
+      if (data.data && data.data.logs && Array.isArray(data.data.logs)) {
+        data.data.logs.forEach(log => {
+          logsText += `[${new Date(log.timestamp).toLocaleString()}] ${log.level} - ${log.message}\n`;
+          if (log.details) {
+            logsText += `  Details: ${JSON.stringify(log.details)}\n`;
+          }
+        });
+      } else if (data.logs) {
+        data.logs.forEach(log => {
+          logsText += `[${new Date(log.timestamp).toLocaleString()}] ${log.level} - ${log.message}\n`;
+        });
+      }
+      
+      const blob = new Blob([logsText], { type: 'text/plain' });
       const url = window.URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `device-logs-${new Date().toISOString()}.txt`;
+      a.download = `device-logs-${new Date().toISOString().replace(/[:.]/g, '-')}.txt`;
       document.body.appendChild(a);
       a.click();
       window.URL.revokeObjectURL(url);
@@ -601,3 +661,15 @@ async function deleteAllMedia() {
     }
   }
 }
+/**
+ * Refresh About Info
+ */
+async function refreshInfo() {
+  try {
+    loadApiData("about", "about-info", formatAboutData);
+    alert('✅ About information refreshed successfully!');
+  } catch (error) {
+    alert('❌ Error refreshing about information: ' + error.message);
+    console.error('Refresh about info error:', error);
+  }
+} 

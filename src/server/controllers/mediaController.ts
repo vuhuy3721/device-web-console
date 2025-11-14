@@ -1,6 +1,7 @@
 import { Request, Response } from 'express';
 import * as path from 'path';
 import * as fs from 'fs';
+const EXTERNAL_API_URL = 'http://100.78.142.94:8080';
 
 export class MediaController {
     private scheduleFilePath: string;
@@ -45,6 +46,19 @@ export class MediaController {
         });
     }
 
+    private async fetchListSchedule(): Promise<any> {
+        try {
+            const response = await fetch(`${EXTERNAL_API_URL}/api/schedules`);
+            if (!response.ok) {
+                console.warn(`Failed to fetch list schedule info: ${response.statusText}`);
+                return null;
+            }
+            return await response.json();
+        } catch (error) {
+            console.warn('Error fetching from external API:', error);
+            return null;
+        }
+    }
     private formatDays(days: number): string {
         if (!days) return '';
         
@@ -106,5 +120,6 @@ export class MediaController {
     }
     
 }
+
 
 export default new MediaController();

@@ -1,7 +1,4 @@
 {
-  "admin": {
-    "password": "admin"
-  },
   "bootstrap_enabled": true,
   "bootstrap_mqtt_defaults": {
     "mqtt_port": 6668,
@@ -11,17 +8,15 @@
   "bootstrap_server": "https://aiot.mobifone.vn",
   "classd": 0,
   "disabled": 0,
-  "external_id": "880027546738806682",
-  "external_key": "2140759982",
+  "external_id": "880027546738806684",
+  "external_key": "2140759984",
   "firmware_version": "1.0.2",
   "fm_auto": 0,
-  "fm_threshold": "30",
-  "fm_volume": "54",
+  "fm_threshold": 30,
+  "fm_volume": 1,
   "ioct": 0,
-  "main_volume": "100",
-  "mobile_mode": "0",
+  "main_volume": 100,
+  "mobile_mode": 0,
   "sim": 0,
-  "txtype": "0",
-  "wifi_ssid": "131231",
-  "wifi_password": "412414"
+  "txtype": 0
 }

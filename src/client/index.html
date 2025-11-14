@@ -10,7 +10,7 @@
 
 <body>
   <header>
-    <h1>📱 Device Web Console</h1>
+    <h1>Device Web Console</h1>
     <p style="margin: 10px 0 0 0; font-size: 0.9em; opacity: 0.9">
       Manage and Monitor Your Device
     </p>
@@ -36,8 +36,6 @@
       <li>
         <a href="#network" onclick="showSection('network')">📡 3G/4G</a>
       </li>
-      <li><a href="mgw.html">📊 MGW Monitor</a></li>
-      <li><a href="remote.html">🌐 Remote Mgmt</a></li>
       <li><a href="#admin" onclick="showSection('admin')">🛡️ Admin</a></li>
       <li><a href="#about" onclick="showSection('about')">ℹ️ About</a></li>
     </ul>
@@ -88,11 +86,11 @@
         <p>Loading player information...</p>
       </div>
       <div class="action-buttons">
-        <button onclick="updatePlayer()" class="btn btn-primary">
-          💾 Update Player
+        <button onclick="nextAudio()" class="btn btn-primary">
+          💾 Next Audio
         </button>
-        <button onclick="resetPlayer()" class="btn btn-secondary">
-          🔄 Reset to Default
+        <button onclick="stopAll()" class="btn btn-secondary">
+          🔄 Stop All 
         </button>
       </div>
     </section>
@@ -114,6 +112,35 @@
       <div id="network-info" class="section-content">
         <p>Loading network information...</p>
       </div>
+      
+      <!-- AT Command Interface -->
+      <div class="info-section">
+        <h3>AT Command Interface</h3>
+        <div class="info-row">
+          <span class="info-label">Request</span>
+          <div class="info-value">
+            <input type="text" id="atCommand" placeholder="AT" value="AT" />
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Request Timeout</span>
+          <div class="info-value">
+            <input type="number" id="atTimeout" value="3" min="1" max="30" style="width: 100px;" /> seconds
+          </div>
+        </div>
+        <div class="info-row">
+          <span class="info-label">Response</span>
+          <div class="info-value">
+            <textarea id="atResponse" readonly rows="3" style="background: #f8f9fa; resize: vertical;">--</textarea>
+          </div>
+        </div>
+        <div class="action-buttons">
+          <button onclick="sendATCommand()" class="btn btn-primary">
+            📡 Send Command
+          </button>
+        </div>
+      </div>
+
       <div class="action-buttons">
         <button onclick="updateNetwork()" class="btn btn-primary">
           💾 Update Network
@@ -127,35 +154,11 @@
     <section id="admin">
       <h2>🛡️ Admin</h2>
       <div id="admin-info" class="section-content">
-        <div class="info-section">
-          <h3>Change Password</h3>
-          <div class="info-row">
-            <span class="info-label">Current Password</span>
-            <div class="info-value">
-              <input type="password" id="currentPassword" placeholder="Enter current password" />
-            </div>
-          </div>
-          <div class="info-row">
-            <span class="info-label">New Password</span>
-            <div class="info-value">
-              <input type="password" id="newPassword" placeholder="Enter new password" />
-            </div>
-          </div>
-          <div class="info-row">
-            <span class="info-label">Confirm New Password</span>
-            <div class="info-value">
-              <input type="password" id="confirmPassword" placeholder="Confirm new password" />
-            </div>
-          </div>
-        </div>
-        <div class="info-section">
-          <h3>Device Management</h3>
-          <p style="padding: 15px 20px; color: #7f8c8d;">System administration and device control options</p>
-        </div>
+        <p>Loading admin information...</p>
       </div>
       <div class="action-buttons">
         <button onclick="changePassword()" class="btn btn-primary">
-          � Change Password
+          🔐 Change Password
         </button>
         <button onclick="rebootDevice()" class="btn btn-secondary">
           🔄 Reboot Device
@@ -170,6 +173,11 @@
       <h2>ℹ️ About</h2>
       <div id="about-info" class="section-content">
         <p>Loading about information...</p>
+      </div>
+      <div class="action-buttons">
+        <button onclick="refreshInfo()" class="btn btn-primary">
+          🔄 Refresh Info
+        </button>
       </div>
     </section>
   </main>

@@ -9,6 +9,9 @@ build/
 # Deployment
 deploy-pkg/
 
+# config files
+server/config/*.json
+
 # Logs
 *.log
 npm-debug.log*

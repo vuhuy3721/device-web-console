@@ -1,44 +1,75 @@
-import { Request, Response } from 'express';
+import e, { Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 
+const EXTERNAL_API_URL = 'http://100.78.142.94:8080';
+
 export class AboutController {
-    public getAboutInfo(req: Request, res: Response): void {
+    private infoFilePath: string;
+
+    constructor() {
+        this.infoFilePath = path.join(__dirname, '../config/info.json');
+    }
+
+    private saveInfoToFile(data: any): void {
         try {
+            fs.writeFileSync(this.infoFilePath, JSON.stringify(data, null, 2), 'utf8');
+            console.log('Info saved to file:', this.infoFilePath);
+        } catch (error) {
+            console.error('Error saving info to file:', error);
+        }
+    }
+
+    private async fetchExternalInfo(): Promise<any> {
+        try {
+            const response = await fetch(`${EXTERNAL_API_URL}/api/info`);
+            if (!response.ok) {
+                console.warn(`Failed to fetch external info: ${response.statusText}`);
+                return null;
+            }
+            return await response.json();
+        } catch (error) {
+            console.warn('Error fetching from external API:', error);
+            return null;
+        }
+    }
+
+    public getAboutInfo = async (req: Request, res: Response): Promise<void> => {
+        try {
+            // Try to fetch from external API first
+            const externalResponse = await this.fetchExternalInfo();
+            
+            // Fallback to local data
             const settingsPath = path.join(__dirname, '../config/settings.json');
             const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
             
+            if (externalResponse && externalResponse.success && externalResponse.data) {
+                // Response from external API has format: { success: true, data: {...}, timestamp: ... }
+                const aboutInfo = {
+                    ...externalResponse.data,
+                    id: settings.external_id || 'Unknown',
+                    vcode: settings.external_key || 'V12345',
+                    timestamp: new Date().toISOString()
+                };
+                
+                // Save to file
+                this.saveInfoToFile(aboutInfo);
+                
+                res.json(aboutInfo);
+                return;
+            }
             const aboutInfo = {
-                name: "Device Web Console",
-                version: "1.0.0",
-                description: "A comprehensive web console for device management and monitoring with support for 3G/4G networks, MQTT connectivity, and real-time status updates.",
-                author: "Device Management Team",
-                license: "MIT",
-                contact: "support@example.com",
-                website: "https://example.com",
-                features: [
-                    "Real-time device status monitoring",
-                    "Connection management",
-                    "Network configuration",
-                    "Media playback control",
-                    "Settings management",
-                    "Admin control panel",
-                    "MQTT integration",
-                    "3G/4G network support"
-                ],
-                buildDate: new Date().toISOString(),
-                deviceId: settings.external_id,
-                bootstrapServer: settings.bootstrap_server,
-                supportedNetworks: [
-                    "3G",
-                    "4G/LTE",
-                    "WiFi"
-                ],
-                technology: {
-                    frontend: "HTML5, CSS3, JavaScript",
-                    backend: "TypeScript, Express.js, Node.js",
-                    database: "JSON file storage",
-                    communication: "REST API, MQTT"
+                device: {
+                    id: settings.external_id || 'Unknown',
+                    vcode: 'V12345',
+                    name: 'Device Name',
+                    firmwareVersion: '1.0.0',
+                    osVersion: 'Linux 5.4',
+                    osBuild: '2024-01-01',
+                    cpuProcessor: 'ARM Cortex-A53',
+                    cpuFrequency: '1.4 GHz',
+                    cpuCores: 4,
+                    ram: '1 GB'
                 },
                 timestamp: new Date().toISOString()
             };

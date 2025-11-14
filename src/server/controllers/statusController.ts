@@ -1,31 +1,93 @@
-import { Request, Response } from 'express';
+import e, { Request, Response } from 'express';
 import * as fs from 'fs';
 import * as path from 'path';
 import * as os from 'os';
 
+const EXTERNAL_API_URL = 'http://100.78.142.94:8080';
+
 export class StatusController {
-    public getStatus(req: Request, res: Response): void {
+    private statusFilePath: string;
+
+    constructor() {
+        this.statusFilePath = path.join(__dirname, '../config/status.json');
+    }
+
+    private saveStatusToFile(data: any): void {
         try {
-            const settingsPath = path.join(__dirname, '../config/settings.json');
-            const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-            
+            fs.writeFileSync(this.statusFilePath, JSON.stringify(data, null, 2), 'utf8');
+            console.log('Status saved to file:', this.statusFilePath);
+        } catch (error) {
+            console.error('Error saving status to file:', error);
+        }
+    }
+
+    private async fetchExternalStatus(): Promise<any> {
+        try {
+            const response = await fetch(`${EXTERNAL_API_URL}/api/status`);
+            if (!response.ok) {
+                console.warn(`Failed to fetch external status: ${response.statusText}`);
+                return null;
+            }
+            return await response.json();
+        } catch (error) {
+            console.warn('Error fetching from external API:', error);
+            return null;
+        }
+    }
+
+    public getStatus = async (req: Request, res: Response): Promise<void> => {
+        try {
+            // Try to fetch from external API first
+            const externalResponse = await this.fetchExternalStatus();
             const uptime = process.uptime();
             const uptimeHours = Math.floor(uptime / 3600);
             const uptimeMinutes = Math.floor((uptime % 3600) / 60);
+            
+            // Fallback to local data if external API is unavailable
+            const settingsPath = path.join(__dirname, '../config/settings.json');
+            const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            
+            if (externalResponse && externalResponse.success && externalResponse.data) {
+                // Response from external API has format: { success: true, data: {...}, timestamp: ... }
+                const status = { 
+                    ...externalResponse.data,
+                    uptime: `${uptimeHours} hours ${uptimeMinutes} minutes`,
+                    storage: `Total: ${externalResponse.data.storage_total}MB, Free: ${externalResponse.data.storage_free}MB`,
+                    log: `Total: 1 GB, Free: 500 MB`,
+                    networkType: settings.txtype === 3 ? '4G/LTE' : '3G',
+                    bootTime: new Date(Date.now() - uptime * 1000).toISOString(),
+                    fmStatus: 'Active',
+                    speakerStatus: 'Active',
+                    streamBack: "On",
+                    deviceTemperature: externalResponse.data.temperature ? `${externalResponse.data.temperature}°C` : '45°C',
+                    timestamp: new Date().toISOString()
+                };
 
-            const status = {
+                // Save status to file
+                this.saveStatusToFile(status);
+
+                res.json(status);
+                return;
+            }
+
+            // Fallback status
+            const fallbackStatus = {
                 uptime: `${uptimeHours} hours ${uptimeMinutes} minutes`,
                 storage: `Total: 16 GB, Free: 8 GB`,
                 log: `Total: 1 GB, Free: 500 MB`,
-                networkType: settings.mobile_mode === 3 ? '4G/LTE' : '3G',
+                networkType: settings.txtype === 3 ? '4G/LTE' : '3G',
                 bootTime: new Date(Date.now() - uptime * 1000).toISOString(),
                 fmStatus: 'Active',
                 speakerStatus: 'Active',
                 streamBack: "On",
                 deviceTemperature: '45°C',
-                deviceHumidity: '40%'
+                timestamp: new Date().toISOString()
             };
-            res.json(status);
+
+            // Save fallback status to file
+            this.saveStatusToFile(fallbackStatus);
+
+            res.json(fallbackStatus);
         } catch (error: any) {
             res.status(500).json({ error: 'Failed to retrieve status', message: error.message });
         }
