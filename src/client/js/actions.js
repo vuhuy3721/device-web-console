@@ -554,16 +554,19 @@ async function exportLogs() {
 /**
  * Media actions
  */
-async function playSelectedMedia() {
+async function playSelectedMedia(mediaId) {
   try {
-    const select = document.getElementById('mediaSelect');
-    if (!select || !window.currentMediaData) {
-      alert('⚠️ No media selected');
-      return;
+    // If mediaId not provided, try to get from old dropdown (backward compatibility)
+    if (!mediaId) {
+      const select = document.getElementById('mediaSelect');
+      if (!select || !window.currentMediaData) {
+        alert('⚠️ No media selected');
+        return;
+      }
+      const selectedIndex = parseInt(select.value);
+      const media = window.currentMediaData[selectedIndex];
+      mediaId = media.mid;
     }
-    
-    const selectedIndex = parseInt(select.value);
-    const media = window.currentMediaData[selectedIndex];
     
     const response = await fetch('/api/media/play', {
       method: 'POST',
@@ -571,11 +574,11 @@ async function playSelectedMedia() {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer dev_token_12345'
       },
-      body: JSON.stringify({ mediaId: media.mid })
+      body: JSON.stringify({ mediaId: mediaId })
     });
 
     if (response.ok) {
-      alert('▶️ Playing media: ' + media.id);
+      alert('▶️ Playing media: ' + mediaId);
     } else {
       throw new Error(`HTTP error! status: ${response.status}`);
     }
@@ -585,6 +588,21 @@ async function playSelectedMedia() {
   }
 }
 
+/**
+ * Play media by index (wrapper for table view)
+ */
+async function playMedia(index) {
+  if (!window.currentMediaData || !window.currentMediaData[index]) {
+    alert('⚠️ Media not found');
+    return;
+  }
+  const mediaId = window.currentMediaData[index].mid;
+  await playSelectedMedia(mediaId);
+}
+
+/**
+ * Stop media playback
+ */
 async function stopMedia() {
   try {
     const response = await fetch('/api/media/stop', {
@@ -605,17 +623,32 @@ async function stopMedia() {
   }
 }
 
-async function deleteSelectedMedia() {
-  const select = document.getElementById('mediaSelect');
-  if (!select || !window.currentMediaData) {
-    alert('⚠️ No media selected');
+/**
+ * Delete media by index (wrapper for table view)
+ */
+async function deleteMedia(index) {
+  if (!window.currentMediaData || !window.currentMediaData[index]) {
+    alert('⚠️ Media not found');
     return;
   }
+  const mediaId = window.currentMediaData[index].mid;
+  await deleteSelectedMedia(mediaId);
+}
+
+async function deleteSelectedMedia(mediaId) {
+  // If mediaId not provided, try to get from old dropdown (backward compatibility)
+  if (!mediaId) {
+    const select = document.getElementById('mediaSelect');
+    if (!select || !window.currentMediaData) {
+      alert('⚠️ No media selected');
+      return;
+    }
+    const selectedIndex = parseInt(select.value);
+    const media = window.currentMediaData[selectedIndex];
+    mediaId = media.mid;
+  }
   
-  const selectedIndex = parseInt(select.value);
-  const media = window.currentMediaData[selectedIndex];
-  
-  if (confirm('⚠️ Are you sure you want to delete media: ' + media.id + '?')) {
+  if (confirm('⚠️ Are you sure you want to delete media: ' + mediaId + '?')) {
     try {
       const response = await fetch('/api/media/delete', {
         method: 'DELETE',
@@ -623,7 +656,7 @@ async function deleteSelectedMedia() {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer dev_token_12345'
         },
-        body: JSON.stringify({ mediaId: media.mid })
+        body: JSON.stringify({ mediaId: mediaId })
       });
 
       if (response.ok) {
@@ -661,6 +694,85 @@ async function deleteAllMedia() {
     }
   }
 }
+
+/**
+ * Filter media by status
+ */
+function filterMedia(status) {
+  // Update active button
+  document.querySelectorAll('.filter-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  event.target.classList.add('active');
+  
+  // Get all media rows
+  const rows = document.querySelectorAll('.media-row');
+  
+  rows.forEach(row => {
+    const statusBadge = row.querySelector('.status-badge');
+    if (!statusBadge) return;
+    
+    const rowStatus = statusBadge.className.includes('status-active') ? 'active' :
+                      statusBadge.className.includes('status-scheduled') ? 'scheduled' :
+                      statusBadge.className.includes('status-expired') ? 'expired' : '';
+    
+    if (status === 'all' || rowStatus === status) {
+      row.style.display = '';
+      // Also show the details row if it exists
+      const nextRow = row.nextElementSibling;
+      if (nextRow && nextRow.classList.contains('media-details-row')) {
+        // Keep it hidden unless it was opened
+        if (nextRow.style.display === 'table-row') {
+          nextRow.style.display = 'table-row';
+        }
+      }
+    } else {
+      row.style.display = 'none';
+      // Hide details row too
+      const nextRow = row.nextElementSibling;
+      if (nextRow && nextRow.classList.contains('media-details-row')) {
+        nextRow.style.display = 'none';
+      }
+    }
+  });
+  
+  // Update visible count
+  const visibleRows = Array.from(rows).filter(row => row.style.display !== 'none');
+  const paginationInfo = document.querySelector('.pagination-info');
+  if (paginationInfo) {
+    paginationInfo.textContent = `Showing ${visibleRows.length} of ${rows.length} results`;
+  }
+}
+
+/**
+ * Refresh media schedule
+ */
+async function refreshMediaSchedule() {
+  try {
+    const button = event.target;
+    const originalText = button.innerHTML;
+    button.innerHTML = '⏳ Loading...';
+    button.disabled = true;
+    
+    await loadApiData("media", "media-info", formatMediaData);
+    
+    button.innerHTML = originalText;
+    button.disabled = false;
+    
+    // Show success message briefly
+    const tempText = button.innerHTML;
+    button.innerHTML = '✅ Refreshed!';
+    setTimeout(() => {
+      button.innerHTML = tempText;
+    }, 2000);
+  } catch (error) {
+    console.error('Refresh media error:', error);
+    alert('❌ Error refreshing media schedule: ' + error.message);
+    event.target.innerHTML = '🔄 Refresh';
+    event.target.disabled = false;
+  }
+}
+
 /**
  * Refresh About Info
  */

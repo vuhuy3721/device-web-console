@@ -1,70 +1,170 @@
 import { Request, Response } from 'express';
-import * as fs from 'fs';
-import * as path from 'path';
+import { storage } from '../services/storageService';
 
+/**
+ * Admin Controller - Manages admin panel, password management, and device status
+ * Uses StorageService for settings file I/O
+ */
 export class AdminController {
-    private settingsFilePath: string;
-
-    constructor() {
-        this.settingsFilePath = path.join(__dirname, '../config/settings.json');
-    }
-
-    public setPassword(req: Request, res: Response): void {
+    /**
+     * Set or update admin password
+     */
+    public async setPassword(req: Request, res: Response): Promise<void> {
         const { newPassword } = req.body;
+        
         if (!newPassword) {
             res.status(400).json({ message: 'New password is required.' });
             return;
         }
 
         try {
-            const settings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
+            const settings = await storage.getSettings();
+            
+            if (!settings) {
+                res.status(500).json({ message: 'Failed to load settings.' });
+                return;
+            }
+
             settings.admin = settings.admin || {};
             settings.admin.password = newPassword;
-            fs.writeFileSync(this.settingsFilePath, JSON.stringify(settings, null, 2));
-            res.status(200).json({ message: 'Password updated successfully.', timestamp: new Date().toISOString() });
+            
+            const saved = await storage.saveSettings(settings);
+
+            if (!saved) {
+                res.status(500).json({ message: 'Failed to save password.' });
+                return;
+            }
+
+            res.status(200).json({ 
+                message: 'Password updated successfully.',
+                timestamp: new Date().toISOString()
+            });
         } catch (error: any) {
-            res.status(500).json({ message: 'Failed to update password.', error: error.message });
+            console.error('Set password error:', error);
+            res.status(500).json({ 
+                message: 'Failed to update password.', 
+                error: error.message 
+            });
         }
     }
 
-    public getPassword(req: Request, res: Response): void {
+    /**
+     * Get current password status
+     */
+    public async getPassword(req: Request, res: Response): Promise<void> {
         try {
-            const settings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
+            const settings = await storage.getSettings();
+            
+            if (!settings) {
+                res.status(500).json({ message: 'Failed to load settings.' });
+                return;
+            }
+
             const password = settings.admin?.password || 'not_set';
+            
             res.status(200).json({ 
                 password: password,
                 isSet: password !== 'not_set',
                 timestamp: new Date().toISOString()
             });
         } catch (error: any) {
-            res.status(500).json({ message: 'Failed to retrieve password status.', error: error.message });
+            console.error('Get password error:', error);
+            res.status(500).json({ 
+                message: 'Failed to retrieve password status.', 
+                error: error.message 
+            });
         }
     }
 
-    public checkPassword(req: Request, res: Response): void {
+    /**
+     * Verify admin password
+     */
+    public async checkPassword(req: Request, res: Response): Promise<void> {
         const { password } = req.body;
+        
         if (!password) {
             res.status(400).json({ message: 'Password is required.' });
             return;
         }
 
         try {
-            const settings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
+            const settings = await storage.getSettings();
+            
+            if (!settings) {
+                res.status(500).json({ message: 'Failed to load settings.' });
+                return;
+            }
+
             const correctPassword = settings.admin?.password || 'default_password';
             
             if (password === correctPassword) {
-                res.status(200).json({ message: 'Access granted.', timestamp: new Date().toISOString() });
+                res.status(200).json({ 
+                    message: 'Access granted.',
+                    timestamp: new Date().toISOString()
+                });
             } else {
                 res.status(403).json({ message: 'Access denied. Invalid password.' });
             }
         } catch (error: any) {
-            res.status(500).json({ message: 'Failed to check password.', error: error.message });
+            console.error('Check password error:', error);
+            res.status(500).json({ 
+                message: 'Failed to check password.', 
+                error: error.message 
+            });
         }
     }
 
-    public getSettings(req: Request, res: Response): void {
+    /**
+     * Login and get access token
+     */
+    public async login(req: Request, res: Response): Promise<void> {
+        const { password } = req.body;
+        
+        if (!password) {
+            res.status(400).json({ message: 'Password is required.' });
+            return;
+        }
+
         try {
-            const settings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
+            const settings = await storage.getSettings();
+            
+            if (!settings) {
+                res.status(500).json({ message: 'Failed to load settings.' });
+                return;
+            }
+
+            const correctPassword = settings.admin?.password || 'admin';
+            
+            if (password === correctPassword) {
+                res.status(200).json({ 
+                    message: 'Login successful.',
+                    token: process.env.AUTH_TOKEN || 'dev_token_12345',
+                    username: 'admin'
+                });
+            } else {
+                res.status(401).json({ message: 'Invalid password.' });
+            }
+        } catch (error: any) {
+            console.error('Login error:', error);
+            res.status(500).json({ 
+                message: 'Login failed.', 
+                error: error.message 
+            });
+        }
+    }
+
+    /**
+     * Get admin settings overview
+     */
+    public async getSettings(req: Request, res: Response): Promise<void> {
+        try {
+            const settings = await storage.getSettings();
+            
+            if (!settings) {
+                res.status(500).json({ error: 'Failed to load settings' });
+                return;
+            }
+
             const adminSettings = {
                 passwordSet: !!settings.admin?.password,
                 bootstrapEnabled: settings.bootstrap_enabled,
@@ -73,17 +173,28 @@ export class AdminController {
                 mobileMode: settings.mobile_mode === 3 ? '4G/LTE' : '3G',
                 lastModified: new Date().toISOString()
             };
+
             res.json(adminSettings);
         } catch (error: any) {
-            res.status(500).json({ error: 'Failed to retrieve admin settings', message: error.message });
+            console.error('Get admin settings error:', error);
+            res.status(500).json({ 
+                error: 'Failed to retrieve admin settings', 
+                message: error.message 
+            });
         }
     }
 
+    /**
+     * Alias for setPassword (for compatibility)
+     */
     public updatePassword(req: Request, res: Response): void {
         this.setPassword(req, res);
     }
 
-    public changePassword(req: Request, res: Response): void {
+    /**
+     * Change password with current password verification
+     */
+    public async changePassword(req: Request, res: Response): Promise<void> {
         const { currentPassword, newPassword } = req.body;
         
         if (!currentPassword || !newPassword) {
@@ -97,7 +208,13 @@ export class AdminController {
         }
 
         try {
-            const settings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
+            const settings = await storage.getSettings();
+            
+            if (!settings) {
+                res.status(500).json({ error: 'Failed to load settings' });
+                return;
+            }
+
             const storedPassword = settings.admin?.password || 'admin';
             
             // Verify current password
@@ -109,7 +226,13 @@ export class AdminController {
             // Update to new password
             settings.admin = settings.admin || {};
             settings.admin.password = newPassword;
-            fs.writeFileSync(this.settingsFilePath, JSON.stringify(settings, null, 2));
+            
+            const saved = await storage.saveSettings(settings);
+
+            if (!saved) {
+                res.status(500).json({ error: 'Failed to save new password' });
+                return;
+            }
             
             console.log('Password changed successfully');
             res.status(200).json({ 
@@ -125,9 +248,18 @@ export class AdminController {
         }
     }
 
-    public getStatus(req: Request, res: Response): void {
+    /**
+     * Get admin panel status
+     */
+    public async getStatus(req: Request, res: Response): Promise<void> {
         try {
-            const settings = JSON.parse(fs.readFileSync(this.settingsFilePath, 'utf8'));
+            const settings = await storage.getSettings();
+            
+            if (!settings) {
+                res.status(500).json({ error: 'Failed to load settings' });
+                return;
+            }
+
             const status = {
                 adminPanel: 'Active',
                 deviceStatus: settings.disabled === 0 ? 'Online' : 'Offline',
@@ -135,14 +267,22 @@ export class AdminController {
                 uptime: process.uptime(),
                 version: '1.0.0'
             };
+
             res.json(status);
         } catch (error: any) {
-            res.status(500).json({ error: 'Failed to retrieve admin status', message: error.message });
+            console.error('Get admin status error:', error);
+            res.status(500).json({ 
+                error: 'Failed to retrieve admin status', 
+                message: error.message 
+            });
         }
     }
 
+    /**
+     * Trigger device reboot
+     * Note: Actual reboot is handled by /api/reboot endpoint in index.ts
+     */
     public rebootDevice(req: Request, res: Response): void {
-        // Simulated reboot response
         res.json({ 
             message: 'Device rebooting...',
             timestamp: new Date().toISOString(),
@@ -150,8 +290,10 @@ export class AdminController {
         });
     }
 
+    /**
+     * Factory reset (requires confirmation)
+     */
     public factoryReset(req: Request, res: Response): void {
-        // Simulated factory reset response (dangerous operation)
         res.status(400).json({ 
             message: 'Factory reset requires additional confirmation.',
             error: 'Missing confirmation flag'

@@ -6,6 +6,9 @@ const router = Router();
 // Route to get admin settings
 router.get('/settings', adminController.getSettings.bind(adminController));
 
+// Login route
+router.post('/login', adminController.login.bind(adminController));
+
 // Route to update admin password
 router.post('/password', adminController.updatePassword.bind(adminController));
 router.get('/password', adminController.getPassword.bind(adminController));

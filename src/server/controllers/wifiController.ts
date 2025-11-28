@@ -1,17 +1,15 @@
 import { Request, Response } from 'express';
+import { storage } from '../services/storageService';
 import { connectToNetwork } from '../utils/networkUtils';
-import * as fs from 'fs';
-import * as path from 'path';
 
+/**
+ * WiFi Controller - Manages WiFi connection and configuration
+ * Uses StorageService for settings and networkUtils for actual WiFi operations
+ */
 export class WifiController {
-    private settingsFilePath: string;
-
-    constructor() {
-        this.settingsFilePath = path.join(__dirname, '../config/settings.json');
-    }
-
     /**
-     * Test WiFi connection without saving
+     * Test WiFi connection without saving credentials
+     * Attempts to connect to the specified SSID
      */
     public testWifiConnection(req: Request, res: Response): void {
         const { ssid, password } = req.body;
@@ -54,9 +52,10 @@ export class WifiController {
     }
 
     /**
-     * Connect to WiFi and save settings
+     * Connect to WiFi and save credentials to settings
+     * First attempts connection, then saves if successful
      */
-    public connectAndSave(req: Request, res: Response): void {
+    public async connectAndSave(req: Request, res: Response): Promise<void> {
         const { ssid, password } = req.body;
 
         if (!ssid || !password) {
@@ -74,42 +73,34 @@ export class WifiController {
 
             if (connected) {
                 // If connected, save to settings
-                fs.readFile(this.settingsFilePath, 'utf8', (err, data) => {
-                    if (err) {
-                        res.status(500).json({ 
-                            error: 'Connected but failed to save settings',
-                            wifi_connected: true
-                        });
-                        return;
-                    }
+                const settings = await storage.getSettings();
+                
+                if (!settings) {
+                    res.status(500).json({ 
+                        error: 'Connected but failed to load settings',
+                        wifi_connected: true
+                    });
+                    return;
+                }
 
-                    try {
-                        const settings = JSON.parse(data);
-                        settings.wifi_ssid = ssid;
-                        settings.wifi_password = password;
+                settings.wifi_ssid = ssid;
+                settings.wifi_password = password;
 
-                        fs.writeFile(this.settingsFilePath, JSON.stringify(settings, null, 2), 'utf8', (writeErr) => {
-                            if (writeErr) {
-                                res.status(500).json({ 
-                                    error: 'Connected but failed to save settings',
-                                    wifi_connected: true
-                                });
-                                return;
-                            }
+                const saved = await storage.saveSettings(settings);
 
-                            res.json({
-                                message: 'Connected to WiFi and settings saved',
-                                wifi_connected: true,
-                                ssid: ssid,
-                                timestamp: new Date().toISOString()
-                            });
-                        });
-                    } catch (parseErr) {
-                        res.status(500).json({ 
-                            error: 'Connected but failed to parse settings',
-                            wifi_connected: true
-                        });
-                    }
+                if (!saved) {
+                    res.status(500).json({ 
+                        error: 'Connected but failed to save settings',
+                        wifi_connected: true
+                    });
+                    return;
+                }
+
+                res.json({
+                    message: 'Connected to WiFi and settings saved',
+                    wifi_connected: true,
+                    ssid: ssid,
+                    timestamp: new Date().toISOString()
                 });
             } else {
                 res.json({
@@ -130,11 +121,11 @@ export class WifiController {
     }
 
     /**
-     * Disconnect from WiFi
+     * Disconnect from current WiFi network
+     * Uses nmcli to disconnect wlan0 interface
      */
     public disconnectWifi(req: Request, res: Response): void {
         try {
-            // Use nmcli to disconnect
             const { execSync } = require('child_process');
             execSync('nmcli device disconnect wlan0', { stdio: 'pipe' });
 
@@ -151,3 +142,5 @@ export class WifiController {
         }
     }
 }
+
+export default new WifiController();

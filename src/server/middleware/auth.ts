@@ -7,8 +7,8 @@ const authenticate = (req: Request, res: Response, next: NextFunction) => {
     }
 
     const token = authHeader.split(' ')[1];
-    // Here you would typically verify the token (e.g., using JWT)
-    // For demonstration, let's assume a simple check
+    
+    // Simple token check
     if (token === process.env.AUTH_TOKEN) {
         next();
     } else {

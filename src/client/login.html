@@ -232,26 +232,22 @@
             const errorMessage = document.getElementById('error-message');
             
             try {
-                // Get current password from API
-                const response = await fetch('/api/admin/password', {
-                    method: 'GET',
+                // Authenticate with server
+                const response = await fetch('/api/admin/login', {
+                    method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                    }
+                    },
+                    body: JSON.stringify({ password })
                 });
                 
-                if (!response.ok) {
-                    throw new Error('Failed to fetch password from server');
-                }
-                
                 const data = await response.json();
-                const currentPassword = data.password || data.data?.password || 'admin';
                 
-                // Simple authentication (username: admin, password: from API)
-                if (username === 'admin' && password === currentPassword) {
+                if (response.ok) {
                     // Set session
                     localStorage.setItem('isLoggedIn', 'true');
                     localStorage.setItem('username', username);
+                    localStorage.setItem('token', data.token);
                     
                     if (remember) {
                         localStorage.setItem('rememberMe', 'true');
@@ -262,6 +258,7 @@
                     return false;
                 } else {
                     // Show error message
+                    errorMessage.textContent = data.message || 'Invalid username or password';
                     errorMessage.classList.add('show');
                     
                     // Clear password field

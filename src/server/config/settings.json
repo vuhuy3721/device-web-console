@@ -1,4 +1,8 @@
 {
+  "admin": {
+    "username": "admin",
+    "password": "12345678"
+  },
   "bootstrap_enabled": true,
   "bootstrap_mqtt_defaults": {
     "mqtt_port": 6668,
@@ -15,8 +19,10 @@
   "fm_threshold": 30,
   "fm_volume": 1,
   "ioct": 0,
-  "main_volume": 100,
+  "main_volume": 92,
   "mobile_mode": 0,
   "sim": 0,
-  "txtype": 0
+  "txtype": 0,
+  "wifi_ssid": "VNPAY-KDN",
+  "wifi_password": "12345678"
 }

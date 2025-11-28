@@ -1,30 +1,28 @@
 {
   "conn": 0,
-  "csqm": -1,
+  "csqm": 20,
   "csqw": 0,
   "fmsta": false,
   "iplan": "10.12.13.40",
-  "ipwan": "222.252.29.233",
+  "ipwan": "101.99.13.145",
   "mids": [
     281746,
-    281825,
-    281825,
-    282289
+    282549
   ],
   "playlist": 0,
   "rssim": 0,
-  "sdfree": 0,
-  "sdtotal": 0,
-  "spkerr": 3840,
-  "temp": 52.790000915527344,
-  "uptime": "1 hours 2 minutes",
+  "sdfree": 753704960,
+  "sdtotal": 7349878784,
+  "spkerr": 0,
+  "temp": 51.25,
+  "uptime": "0 hours 28 minutes",
   "storage": "Total: undefinedMB, Free: undefinedMB",
   "log": "Total: 1 GB, Free: 500 MB",
   "networkType": "3G",
-  "bootTime": "2025-11-14T08:22:32.769Z",
+  "bootTime": "2025-11-25T03:29:29.674Z",
   "fmStatus": "Active",
   "speakerStatus": "Active",
   "streamBack": "On",
   "deviceTemperature": "45°C",
-  "timestamp": "2025-11-14T09:24:46.271Z"
+  "timestamp": "2025-11-25T03:57:41.949Z"
 }

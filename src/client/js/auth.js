@@ -26,6 +26,7 @@ function logout() {
   if (confirm('Are you sure you want to logout?')) {
     localStorage.removeItem('isLoggedIn');
     localStorage.removeItem('username');
+    localStorage.removeItem('token');
     // Keep rememberMe if checked
     if (localStorage.getItem('rememberMe') !== 'true') {
       localStorage.removeItem('rememberMe');

@@ -5,9 +5,10 @@
  */
 async function loadApiData(endpoint, elementId, formatter) {
   try {
+    const token = localStorage.getItem('token') || "dev_token_12345";
     const response = await fetch(`/api/${endpoint}`, {
       headers: {
-        Authorization: "Bearer dev_token_12345",
+        Authorization: `Bearer ${token}`,
       },
     });
 
@@ -39,10 +40,12 @@ async function loadApiData(endpoint, elementId, formatter) {
  */
 async function postApiData(endpoint, data) {
   try {
+    const token = localStorage.getItem('token') || "dev_token_12345";
     const response = await fetch(`/api/${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(data)
     });
@@ -59,10 +62,12 @@ async function postApiData(endpoint, data) {
  */
 async function putApiData(endpoint, data) {
   try {
+    const token = localStorage.getItem('token') || "dev_token_12345";
     const response = await fetch(`/api/${endpoint}`, {
       method: 'PUT',
       headers: {
         'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
       },
       body: JSON.stringify(data)
     });
@@ -79,8 +84,12 @@ async function putApiData(endpoint, data) {
  */
 async function deleteApiData(endpoint) {
   try {
+    const token = localStorage.getItem('token') || "dev_token_12345";
     const response = await fetch(`/api/${endpoint}`, {
-      method: 'DELETE'
+      method: 'DELETE',
+      headers: {
+        'Authorization': `Bearer ${token}`
+      }
     });
     if (!response.ok) throw new Error(`HTTP error! status: ${response.status}`);
     return await response.json();

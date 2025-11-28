@@ -232,49 +232,79 @@ function formatSettingsData(data) {
 }
 
 /**
- * Format media data for display
+ * Format media data for display - Table view with expandable details
  */
 function formatMediaData(data) {
-  let html = '<div class="info-section"><h3>Media Information</h3>';
+  let html = '';
 
-  // Dropdown to select media
   if (data.mediaFiles && Array.isArray(data.mediaFiles) && data.mediaFiles.length > 0) {
-    html += '<div class="info-row">';
-    html += '<span class="info-label">Select Media (' + data.mediaFiles.length + ')</span>';
-    html += '<select id="mediaSelect" class="media-select" onchange="loadMediaDetails()">';
+    // Media table
+    html += '<div class="media-table-container">';
+    html += '<table class="media-table">';
+    html += '<thead>';
+    html += '<tr>';
+    html += '<th>NEWS TITLE</th>';
+    html += '<th>START TIME</th>';
+    html += '<th>EXPIRATION TIME</th>';
+    html += '<th>RECURRENCE</th>';
+    html += '<th>STATUS</th>';
+    html += '</tr>';
+    html += '</thead>';
+    html += '<tbody>';
+    
     data.mediaFiles.forEach((media, index) => {
-      html += `<option value="${index}">${media.id || media.mid || 'Media ' + (index + 1)}</option>`;
-    });
-    html += '</select>';
-    html += '</div>';
-    
-    html += '</div>';
-    
-    // Media details section
-    html += '<div class="info-section"><h3>Media details</h3>';
-    html += '<div id="mediaDetails"></div>';
-    html += '</div>';
-    
-    // Action buttons
-    html += '<div class="media-actions">';
-    html += '<button class="btn-play" onclick="playSelectedMedia()">Play</button>';
-    html += '<button class="btn-stop" onclick="stopMedia()">Stop</button>';
-    html += '<button class="btn-delete" onclick="deleteSelectedMedia()">Delete</button>';
-    html += '<button class="btn-delete-all" onclick="deleteAllMedia()">Delete All</button>';
-    html += '</div>';
-    
-    // Store media data globally for access
-    window.currentMediaData = data.mediaFiles;
-    
-    // Auto-load first media details
-    setTimeout(() => {
-      if (window.loadMediaDetails) {
-        window.loadMediaDetails();
+      const statusClass = getMediaStatusClass(media.status, media.expired, media.start);
+      const statusText = getMediaStatusText(media.status, media.expired, media.start);
+      const recurrence = media.repeatType === 'MONTH DAYS' ? (media.activeDays ? 'Monthly on days ' + media.activeDays.split(',').slice(0, 3).join(',') + '...' : 'None') : (media.repeatType === 'WEEK DAYS' ? 'Weekly' : 'None');
+      
+      html += `<tr class="media-row" onclick="toggleMediaDetails(${index})">`;
+      html += `<td class="media-title">Media ${media.id || media.mid}</td>`;
+      html += `<td>${media.start || '--'}</td>`;
+      html += `<td>${media.expired || 'Ongoing'}</td>`;
+      html += `<td>${recurrence}</td>`;
+      html += `<td><span class="status-badge status-${statusClass}">${statusText}</span></td>`;
+      html += '</tr>';
+      
+      // Hidden details row
+      html += `<tr id="details-${index}" class="media-details-row" style="display: none;">`;
+      html += '<td colspan="5">';
+      html += '<div class="media-details-content">';
+      html += '<div class="details-grid">';
+      html += `<div class="detail-item"><strong>Media ID:</strong> ${media.mid}</div>`;
+      html += `<div class="detail-item"><strong>Mode:</strong> ${media.mode}</div>`;
+      html += `<div class="detail-item"><strong>Priority:</strong> ${media.priority}</div>`;
+      html += `<div class="detail-item"><strong>Created:</strong> ${media.created}</div>`;
+      html += `<div class="detail-item"><strong>Start:</strong> ${media.start}</div>`;
+      html += `<div class="detail-item"><strong>Expired:</strong> ${media.expired}</div>`;
+      html += `<div class="detail-item"><strong>Repeat Type:</strong> ${media.repeatType}</div>`;
+      html += `<div class="detail-item"><strong>Active Days:</strong> ${media.activeDays || 'N/A'}</div>`;
+      html += `<div class="detail-item"><strong>Schedule Times:</strong> ${media.scheduleTimes || 'N/A'}</div>`;
+      html += `<div class="detail-item"><strong>Durations:</strong> ${media.scheduleDurations || 'N/A'}</div>`;
+      html += '</div>';
+      if (media.filesInfo) {
+        html += `<div class="detail-item-full"><strong>Files Info:</strong><pre>${media.filesInfo}</pre></div>`;
       }
-    }, 100);
+      html += '<div class="detail-actions">';
+      html += `<button class="btn-play" onclick="event.stopPropagation(); playMedia(${index})">▶ Play</button>`;
+      html += `<button class="btn-stop" onclick="event.stopPropagation(); stopMedia()">⏹ Stop</button>`;
+      html += `<button class="btn-delete" onclick="event.stopPropagation(); deleteMedia(${index})">🗑 Delete</button>`;
+      html += '</div>';
+      html += '</div>';
+      html += '</td>';
+      html += '</tr>';
+    });
+    
+    html += '</tbody>';
+    html += '</table>';
+    html += '</div>';
+    
+    // Pagination info
+    html += `<div class="pagination-info">Showing 1 to ${Math.min(5, data.mediaFiles.length)} of ${data.mediaFiles.length} results</div>`;
+    
+    // Store media data globally
+    window.currentMediaData = data.mediaFiles;
   } else {
     html += '<p class="no-data">No media files available</p>';
-    html += '</div>';
   }
 
   if (data.timestamp) {
@@ -286,36 +316,45 @@ function formatMediaData(data) {
   return html;
 }
 
-/**
- * Load and display media details for selected media
- */
-window.loadMediaDetails = function() {
-  const select = document.getElementById('mediaSelect');
-  const detailsDiv = document.getElementById('mediaDetails');
+function getMediaStatusClass(status, expired, start) {
+  const now = new Date();
+  const expDate = expired ? new Date(expired.split(', ')[0].split('/').reverse().join('-')) : null;
+  const startDate = start ? new Date(start.split(', ')[0].split('/').reverse().join('-')) : null;
   
-  if (!select || !detailsDiv || !window.currentMediaData) return;
+  if (expDate && now > expDate) return 'expired';
+  if (startDate && now < startDate) return 'scheduled';
+  if (expired === 'Ongoing') return 'active';
+  return 'active';
+}
+
+function getMediaStatusText(status, expired, start) {
+  const now = new Date();
+  const expDate = expired ? new Date(expired.split(', ')[0].split('/').reverse().join('-')) : null;
+  const startDate = start ? new Date(start.split(', ')[0].split('/').reverse().join('-')) : null;
   
-  const selectedIndex = parseInt(select.value);
-  const media = window.currentMediaData[selectedIndex];
-  
-  if (!media) return;
-  
-  let html = '';
-  
-  // Display media properties
-  if (media.mode) html += createInfoRow('Mode', media.mode);
-  if (media.priority !== undefined) html += createInfoRow('Priority', media.priority);
-  if (media.created) html += createInfoRow('Created', media.created);
-  if (media.expired) html += createInfoRow('Expired', media.expired);
-  if (media.start) html += createInfoRow('Start', media.start);
-  if (media.repeatType) html += createInfoRow('Repeat type', media.repeatType);
-  if (media.activeDays) html += createInfoRow('Active Days', media.activeDays);
-  if (media.scheduleTimes) html += createInfoRow('Schedule Times', media.scheduleTimes);
-  if (media.scheduleDurations) html += createInfoRow('Schedule Durations', media.scheduleDurations);
-  if (media.filesInfo) html += createInfoRow('Files information', typeof media.filesInfo === 'string' ? media.filesInfo : JSON.stringify(media.filesInfo));
-  if (media.status) html += createInfoRow('Status', media.status);
-  
-  detailsDiv.innerHTML = html;
+  if (expDate && now > expDate) return 'Expired';
+  if (startDate && now < startDate) return 'Scheduled';
+  if (expired === 'Ongoing') return 'Active';
+  return 'Active';
+}
+
+window.toggleMediaDetails = function(index) {
+  const detailsRow = document.getElementById(`details-${index}`);
+  if (detailsRow) {
+    detailsRow.style.display = detailsRow.style.display === 'none' ? 'table-row' : 'none';
+  }
+};
+
+window.playMedia = function(index) {
+  if (!window.currentMediaData) return;
+  const media = window.currentMediaData[index];
+  playSelectedMedia(media.mid);
+};
+
+window.deleteMedia = function(index) {
+  if (!window.currentMediaData) return;
+  const media = window.currentMediaData[index];
+  deleteSelectedMedia(media.mid);
 };
 
 /**

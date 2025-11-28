@@ -1,125 +1,166 @@
 import { Request, Response } from 'express';
-import * as path from 'path';
-import * as fs from 'fs';
-const EXTERNAL_API_URL = 'http://100.78.142.94:8080';
+import { externalApi } from '../services/externalApiService';
+import { storage } from '../services/storageService';
+import { STATUS_MODES, REPEAT_TYPES } from '../config/constants';
 
+/**
+ * Media Controller
+ * Manages media schedule operations
+ */
 export class MediaController {
-    private scheduleFilePath: string;
-    
-    constructor() {
-        this.scheduleFilePath = path.join(__dirname, '../config/schedule.json'); // Initialize if needed
+
+  /**
+   * GET /api/media
+   * Get list of media schedules
+   */
+  public async getListMedia(req: Request, res: Response): Promise<void> {
+    try {
+      // Try external API first
+      let schedulesData = await externalApi.getSchedules();
+
+      // Fallback to local storage
+      if (!schedulesData) {
+        schedulesData = storage.getSchedules();
+      }
+
+      if (!schedulesData) {
+        res.status(500).json({ error: 'Failed to fetch schedule from both external API and local storage' });
+        return;
+      }
+
+      // Transform schedule data to media format
+      const mediaFiles = Array.isArray(schedulesData) ? schedulesData.map(schedule => ({
+        id: schedule.mid || 'Unknown',
+        mid: schedule.mid,
+        mode: schedule.mode === STATUS_MODES.SCHEDULE ? 'SCHEDULE' : 'NORMAL',
+        priority: schedule.prio || 0,
+        created: schedule.created ? new Date(schedule.created * 1000).toLocaleString('en-GB') : '',
+        expired: schedule.expired ? new Date(schedule.expired * 1000).toLocaleString('en-GB') : '',
+        start: schedule.start ? new Date(schedule.start * 1000).toLocaleString('en-GB') : '',
+        repeatType: schedule.repeat === REPEAT_TYPES.MONTH_DAYS ? 'MONTH DAYS' : 'WEEK DAYS',
+        activeDays: this.formatDays(schedule.days),
+        scheduleTimes: this.formatTimes(schedule.ts),
+        scheduleDurations: this.formatDurations(schedule.ds),
+        filesInfo: schedule.files ? JSON.stringify(schedule.files[0] || {}) : '',
+        status: 'NORMAL'
+      })) : [];
+
+      res.json({
+        mediaFiles: mediaFiles,
+        timestamp: new Date().toISOString()
+      });
+    } catch (error) {
+      console.error('Error in getListMedia:', error);
+      res.status(500).json({ error: 'Failed to retrieve media list' });
     }
-    public getListMedia(req: Request, res: Response): void {
-        // Logic to retrieve list of media files from schedule.json
-        fs.readFile(this.scheduleFilePath, 'utf8', (err, data) => {
-            if (err) {
-                res.status(500).json({ error: 'Failed to read schedule file' });
-                return;
-            }
-            try {
-                const schedules = JSON.parse(data);
-                
-                // Transform schedule data to media format
-                const mediaFiles = Array.isArray(schedules) ? schedules.map(schedule => ({
-                    id: schedule.mid || 'Unknown',
-                    mid: schedule.mid,
-                    mode: schedule.mode === 1 ? 'SCHEDULE' : schedule.mode === 0 ? 'NORMAL' : 'UNKNOWN',
-                    priority: schedule.prio || 0,
-                    created: schedule.created ? new Date(schedule.created * 1000).toLocaleString('en-GB') : '',
-                    expired: schedule.expired ? new Date(schedule.expired * 1000).toLocaleString('en-GB') : '',
-                    start: schedule.start ? new Date(schedule.start * 1000).toLocaleString('en-GB') : '',
-                    repeatType: schedule.repeat === 0 ? 'MONTH DAYS' : 'WEEK DAYS',
-                    activeDays: this.formatDays(schedule.days),
-                    scheduleTimes: this.formatTimes(schedule.ts),
-                    scheduleDurations: this.formatDurations(schedule.ds),
-                    filesInfo: schedule.files ? JSON.stringify(schedule.files[0] || {}) : '',
-                    status: 'NORMAL'
-                })) : [];
-                
-                res.json({ 
-                    mediaFiles: mediaFiles,
-                    timestamp: new Date().toISOString() 
-                });
-            } catch (parseError) {
-                res.status(500).json({ error: 'Failed to parse schedule file' });
-            }
-        });
+  }
+
+  /**
+   * POST /api/media/play
+   * Play a media file
+   */
+  public async playMedia(req: Request, res: Response): Promise<void> {
+    const { mediaId } = req.body;
+
+    if (!mediaId) {
+      res.status(400).json({ error: 'mediaId is required' });
+      return;
     }
 
-    private async fetchListSchedule(): Promise<any> {
-        try {
-            const response = await fetch(`${EXTERNAL_API_URL}/api/schedules`);
-            if (!response.ok) {
-                console.warn(`Failed to fetch list schedule info: ${response.statusText}`);
-                return null;
-            }
-            return await response.json();
-        } catch (error) {
-            console.warn('Error fetching from external API:', error);
-            return null;
-        }
-    }
-    private formatDays(days: number): string {
-        if (!days) return '';
-        
-        // Convert binary representation to day numbers
-        const dayList: number[] = [];
-        for (let i = 1; i <= 31; i++) {
-            if (days & (1 << (i - 1))) {
-                dayList.push(i);
-            }
-        }
-        return dayList.join(',');
-    }
+    // TODO: Implement play media logic with external API
+    res.json({ message: 'Media is now playing.', mediaId });
+  }
 
-    private formatTimes(times: number[]): string {
-        if (!times || !Array.isArray(times)) return '';
-        
-        return times.map(t => {
-            const hours = Math.floor(t / 3600);
-            const minutes = Math.floor((t % 3600) / 60);
-            const seconds = t % 60;
-            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }).join(', ');
-    }
+  /**
+   * POST /api/media/pause
+   * Pause media playback
+   */
+  public pauseMedia(req: Request, res: Response): void {
+    // TODO: Implement pause media logic
+    res.json({ message: 'Media is paused.' });
+  }
 
-    private formatDurations(durations: number[]): string {
-        if (!durations || !Array.isArray(durations)) return '';
-        
-        return durations.map(d => {
-            const hours = Math.floor(d / 3600);
-            const minutes = Math.floor((d % 3600) / 60);
-            const seconds = d % 60;
-            return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
-        }).join(', ');
-    }
-    public getMediaDetailInfo(req: Request, res: Response): void {
-        // Logic to retrieve media information
-        res.json({ message: 'Media information retrieved successfully.' });
-    }
+  /**
+   * POST /api/media/stop
+   * Stop media playback
+   */
+  public stopMedia(req: Request, res: Response): void {
+    // TODO: Implement stop media logic
+    res.json({ message: 'Media has been stopped.' });
+  }
 
-    public playMedia(req: Request, res: Response): void {
-        // Logic to play media
-        res.json({ message: 'Media is now playing.' });
-    }
+  /**
+   * DELETE /api/media/delete
+   * Delete a media schedule
+   */
+  public async deleteMedia(req: Request, res: Response): Promise<void> {
+    try {
+      const { mediaId } = req.body;
 
-    public pauseMedia(req: Request, res: Response): void {
-        // Logic to pause media
-        res.json({ message: 'Media is paused.' });
-    }
+      if (!mediaId) {
+        res.status(400).json({ error: 'mediaId is required' });
+        return;
+      }
 
-    public stopMedia(req: Request, res: Response): void {
-        // Logic to stop media
-        res.json({ message: 'Media has been stopped.' });
-    }
+      // Delete from external API
+      const result = await externalApi.deleteSchedule(mediaId);
 
-    public setVolume(req: Request, res: Response): void {
-        const volume = req.body.volume;
-        // Logic to set media volume
-        res.json({ message: `Volume set to ${volume}.` });
+      res.json({
+        success: true,
+        message: `Media ${mediaId} deleted successfully`,
+        data: result
+      });
+    } catch (error) {
+      console.error('Error deleting media:', error);
+      res.status(500).json({
+        error: 'Failed to delete media',
+        details: error instanceof Error ? error.message : 'Unknown error'
+      });
     }
-    
+  }
+
+  /**
+   * Format days bitmask to comma-separated day numbers
+   */
+  private formatDays(days: number): string {
+    if (!days) return '';
+
+    const dayList: number[] = [];
+    for (let i = 1; i <= 31; i++) {
+      if (days & (1 << (i - 1))) {
+        dayList.push(i);
+      }
+    }
+    return dayList.join(',');
+  }
+
+  /**
+   * Format times array (seconds) to HH:MM:SS
+   */
+  private formatTimes(times: number[]): string {
+    if (!times || !Array.isArray(times)) return '';
+
+    return times.map(t => {
+      const hours = Math.floor(t / 3600);
+      const minutes = Math.floor((t % 3600) / 60);
+      const seconds = t % 60;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }).join(', ');
+  }
+
+  /**
+   * Format durations array (seconds) to HH:MM:SS
+   */
+  private formatDurations(durations: number[]): string {
+    if (!durations || !Array.isArray(durations)) return '';
+
+    return durations.map(d => {
+      const hours = Math.floor(d / 3600);
+      const minutes = Math.floor((d % 3600) / 60);
+      const seconds = d % 60;
+      return `${String(hours).padStart(2, '0')}:${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+    }).join(', ');
+  }
 }
-
 
 export default new MediaController();

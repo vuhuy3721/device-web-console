@@ -1,17 +1,28 @@
-import { Request, response, Response } from 'express';
-import * as fs from 'fs';
-import * as path from 'path';
-import { execSync } from 'child_process';
+import { Request, Response } from 'express';
+import { storage } from '../services/storageService';
+import { externalApi } from '../services/externalApiService';
 
-const EXTERNAL_API_URL = 'http://100.78.142.94:8080';
-
+/**
+ * Network Controller - Manages network information and AT command interface
+ * Uses StorageService for settings/info and ExternalApiService for AT commands
+ */
 export class NetworkController {
-    public getNetworkInfo(req: Request, res: Response): void {
+    /**
+     * Get network information (IMEI, model, SIM details)
+     * Combines data from settings.json and info.json
+     */
+    public async getNetworkInfo(req: Request, res: Response): Promise<void> {
         try {
-            const settingsPath = path.join(__dirname, '../config/settings.json');
-            const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
-            const infoPath = path.join(__dirname, '../config/info.json');
-            const info = JSON.parse(fs.readFileSync(infoPath, 'utf8'));
+            const [settings, info] = await Promise.all([
+                storage.getSettings(),
+                storage.getInfo()
+            ]);
+
+            if (!settings || !info) {
+                res.status(500).json({ error: 'Failed to load network data' });
+                return;
+            }
+
             const networkInfo = {
                 imei: info.gsm_imei || 'unknown',
                 model: info.gsm_model || 'unknown',
@@ -20,37 +31,70 @@ export class NetworkController {
                 phoneNumber: settings.gsm_phone || 'unknown',
                 gsmStatus: settings.gsm_status || 'unknown'
             };
+
             res.json(networkInfo);
         } catch (error: any) {
-            res.status(500).json({ error: 'Failed to retrieve network info', message: error.message });
+            console.error('Get network info error:', error);
+            res.status(500).json({ 
+                error: 'Failed to retrieve network info', 
+                message: error.message 
+            });
         }
     }
 
-    public updateNetworkSettings(req: Request, res: Response): void {
+    /**
+     * Update network settings (mobile mode, SIM)
+     */
+    public async updateNetworkSettings(req: Request, res: Response): Promise<void> {
         try {
-            const settingsPath = path.join(__dirname, '../config/settings.json');
-            const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            const settings = await storage.getSettings();
             
+            if (!settings) {
+                res.status(500).json({ error: 'Failed to load settings' });
+                return;
+            }
+
             const { mobileMode, sim } = req.body;
             
             if (mobileMode !== undefined) {
                 settings.mobile_mode = mobileMode;
             }
+            
             if (sim !== undefined) {
                 settings.sim = sim;
             }
             
-            fs.writeFileSync(settingsPath, JSON.stringify(settings, null, 2));
-            res.json({ message: 'Network settings updated', timestamp: new Date().toISOString() });
+            const saved = await storage.saveSettings(settings);
+
+            if (!saved) {
+                res.status(500).json({ error: 'Failed to save settings' });
+                return;
+            }
+
+            res.json({ 
+                message: 'Network settings updated', 
+                timestamp: new Date().toISOString() 
+            });
         } catch (error: any) {
-            res.status(500).json({ error: 'Failed to update network settings', message: error.message });
+            console.error('Update network settings error:', error);
+            res.status(500).json({ 
+                error: 'Failed to update network settings', 
+                message: error.message 
+            });
         }
     }
 
-    public checkNetworkStatus(req: Request, res: Response): void {
+    /**
+     * Check current network status
+     */
+    public async checkNetworkStatus(req: Request, res: Response): Promise<void> {
         try {
-            const settingsPath = path.join(__dirname, '../config/settings.json');
-            const settings = JSON.parse(fs.readFileSync(settingsPath, 'utf8'));
+            const settings = await storage.getSettings();
+            
+            if (!settings) {
+                res.status(500).json({ error: 'Failed to load settings' });
+                return;
+            }
 
             const status = {
                 online: settings.disabled === 0,
@@ -60,12 +104,21 @@ export class NetworkController {
                 signal: 'Strong',
                 timestamp: new Date().toISOString()
             };
+
             res.json(status);
         } catch (error: any) {
-            res.status(500).json({ error: 'Failed to check network status', message: error.message });
+            console.error('Check network status error:', error);
+            res.status(500).json({ 
+                error: 'Failed to check network status', 
+                message: error.message 
+            });
         }
     }
 
+    /**
+     * Send AT command to external device
+     * Uses ExternalApiService to forward command to device
+     */
     public async sendATCommand(req: Request, res: Response): Promise<void> {
         const { command, timeout } = req.body;
         
@@ -75,23 +128,20 @@ export class NetworkController {
         }
 
         try {
-            console.log(`Executing AT command: ${command} with timeout: ${timeout}s`);
-            const response = await fetch(`${EXTERNAL_API_URL}/api/atcommand`, 
-                {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify({ command, timeout })
-                });
+            console.log(`Executing AT command: ${command} with timeout: ${timeout || 5}s`);
             
-            if (!response.ok) {
-                res.status(500).json({ error: `Failed to execute AT command: ${response.statusText}` });
+            // Use externalApi service to send AT command
+            const result = await externalApi.post('/api/atcommand', { command, timeout });
+
+            if (!result) {
+                res.status(500).json({ 
+                    error: 'Failed to execute AT command',
+                    message: 'No response from device'
+                });
                 return;
             }
-            
-            const data = await response.json();
-            res.json(data);
+
+            res.json(result);
         } catch (error: any) {
             console.error('AT Command error:', error);
             res.status(500).json({

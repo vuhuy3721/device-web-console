@@ -75,6 +75,15 @@
 
     <section id="media">
       <h2>🎵 Media</h2>
+      <div class="media-filter-bar">
+        <button class="filter-btn active" onclick="filterMedia('all')">All</button>
+        <button class="filter-btn" onclick="filterMedia('active')">🟢 Active</button>
+        <button class="filter-btn" onclick="filterMedia('scheduled')">🟡 Scheduled</button>
+        <button class="filter-btn" onclick="filterMedia('expired')">🔴 Expired</button>
+        <button class="btn btn-primary" onclick="refreshMediaSchedule()" style="margin-left: auto;">
+          🔄 Refresh
+        </button>
+      </div>
       <div id="media-info" class="section-content">
         <p>Loading media information...</p>
       </div>
